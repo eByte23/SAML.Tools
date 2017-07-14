@@ -14,11 +14,19 @@ namespace SAML.Tools.Cli
     {
         static void Main(string[] args)
         {
+            var metadataUrl = string.Empty;
+            if(args.Length < 1){
+                Console.WriteLine("No metadata provided");
+                return;
+            }
+
+            metadataUrl = args[0];
+
             var configSuggestion = new ConfigurationSuggestion();
 
             var xml = new XmlDocument();
             xml.PreserveWhitespace = true;
-            xml.Load("https://auth.uq.edu.au/idp/saml2/idp/metadata.php");
+            xml.Load(metadataUrl);
 
             var meta = new SAMLSilly.Saml20MetadataDocument(xml);
             configSuggestion.SigningDetails = GetSigningInfo(meta.Entity.Signature);
@@ -42,10 +50,11 @@ namespace SAML.Tools.Cli
             if (configSuggestion.HasSpSupport())
                 WriteSsoInfo(configSuggestion.Sp);
 
+            Console.WriteLine("---------------------------------------------");
 
-            if (configSuggestion.HasIdpSupport())            
+            if (configSuggestion.HasIdpSupport())
                 WriteSsoInfo(configSuggestion.Idp);
-            
+
 
 
             Console.Read();
@@ -64,7 +73,7 @@ namespace SAML.Tools.Cli
 
         public static void WriteSsoInfo(SSODescriptorSuggestions sso)
         {
-            Console.WriteLine("Identity Provider Details:");
+            Console.WriteLine("Service Provider Details:");
             Console.WriteLine("Supports Single Logout: {0}", sso.SupportsSingleLogout);
             Console.WriteLine("Possibly usable NameId Formats: ");
             foreach (var format in sso.PossiblySupportedNameIdFormats)
@@ -93,9 +102,9 @@ namespace SAML.Tools.Cli
                 {
                     var selfSignedSpec = new SAMLSilly.Specification.SelfIssuedCertificateSpecification();
                     si.IsCertificateSelfSigned = selfSignedSpec.IsSatisfiedBy(cert);
-                }                
+                }
             }
-            
+
             return si;
         }
 
@@ -110,7 +119,7 @@ namespace SAML.Tools.Cli
                 {
                     var cert = new X509Certificate2((byte[])((X509Data)clause).Items.First());
                     var keyInfo = new KeyInfoX509Data(cert, X509IncludeOption.WholeChain);
-                    
+
                     return cert;
                 }
             }
@@ -124,7 +133,7 @@ namespace SAML.Tools.Cli
 
             idpSuggestions.SupportsSingleLogout = idp.SingleLogoutService.Any();
             idpSuggestions.PossiblySupportedNameIdFormats = idp.NameIdFormat;
-            idpSuggestions.SigningDetails = GetKeyDescriptorAsWell(idp,GetSigningInfo(idp.Signature));           
+            idpSuggestions.SigningDetails = GetKeyDescriptorAsWell(idp,GetSigningInfo(idp.Signature));
 
             return idpSuggestions;
         }
@@ -181,13 +190,13 @@ namespace SAML.Tools.Cli
 
             return si;
         }
-        
+
     }
 
 
     public class ConfigurationHelpers
     {
-        // public static 
+        // public static
 
 
         public static AlgorithmType GetAlgorithmFromNamespace(string namespaceUrl)
