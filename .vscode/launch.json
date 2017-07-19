@@ -10,8 +10,10 @@
             "request": "launch",
             "preLaunchTask": "build",
             // If you have changed target frameworks, make sure to update the program path.
-            "program": "${workspaceRoot}/src/SAML.Tools.Cli/bin/Debug/netcoreapp1.1/SAML.Tools.Cli.dll",
-            "args": [],
+            "program": "${workspaceRoot}/src/SAML.Tools.Cli/bin/Debug/netcoreapp2.0/SAML.Tools.Cli.dll",
+            "args": [
+               "https://login.microsoftonline.com/common/federationmetadata/2007-06/federationmetadata.xml"
+            ],
             "cwd": "${workspaceRoot}/src/SAML.Tools.Cli",
             // For more information about the 'console' field, see https://github.com/OmniSharp/omnisharp-vscode/blob/master/debugger-launchjson.md#console-terminal-window
             "console": "internalConsole",

@@ -7,6 +7,7 @@ using SAMLSilly;
 using System.Security.Cryptography.X509Certificates;
 using SAMLSilly.Schema.XmlDSig;
 using System.Security.Cryptography.Xml;
+using System.Net.Http;
 
 namespace SAML.Tools.Cli
 {
@@ -14,21 +15,24 @@ namespace SAML.Tools.Cli
     {
         static void Main(string[] args)
         {
-            var metadataUrl = string.Empty;
-            if(args.Length < 1){
+            Uri metadataUrl = null;
+            if (args.Length < 1 || !Uri.TryCreate(args[0], UriKind.Absolute, out metadataUrl))
+            {
                 Console.WriteLine("No metadata provided");
                 return;
             }
 
-            metadataUrl = args[0];
+            var client = new HttpClient();
+            var metadata = client.GetStringAsync(metadataUrl).Result;
 
             var configSuggestion = new ConfigurationSuggestion();
 
             var xml = new XmlDocument();
             xml.PreserveWhitespace = true;
-            xml.Load(metadataUrl);
+            xml.LoadXml(metadata);
 
             var meta = new SAMLSilly.Saml20MetadataDocument(xml);
+
             configSuggestion.SigningDetails = GetSigningInfo(meta.Entity.Signature);
 
 
@@ -75,10 +79,18 @@ namespace SAML.Tools.Cli
         {
             Console.WriteLine("Service Provider Details:");
             Console.WriteLine("Supports Single Logout: {0}", sso.SupportsSingleLogout);
-            Console.WriteLine("Possibly usable NameId Formats: ");
-            foreach (var format in sso.PossiblySupportedNameIdFormats)
+            Console.Write("Possibly usable NameId Formats ({0}): ", sso.PossiblySupportedNameIdFormats?.Count() ?? 0);
+            if (sso.PossiblySupportedNameIdFormats?.Any() ?? false)
             {
-                Console.WriteLine("   -   {0}", format);
+                Console.Write("\n");
+                foreach (var format in sso.PossiblySupportedNameIdFormats)
+                {
+                    Console.WriteLine("   -   {0}", format);
+                }
+            }
+            else
+            {
+                Console.WriteLine("No NameId Formast Found");
             }
             WriteSigningInfo(sso.SigningDetails);
         }
@@ -133,7 +145,7 @@ namespace SAML.Tools.Cli
 
             idpSuggestions.SupportsSingleLogout = idp.SingleLogoutService.Any();
             idpSuggestions.PossiblySupportedNameIdFormats = idp.NameIdFormat;
-            idpSuggestions.SigningDetails = GetKeyDescriptorAsWell(idp,GetSigningInfo(idp.Signature));
+            idpSuggestions.SigningDetails = GetKeyDescriptorAsWell(idp, GetSigningInfo(idp.Signature));
 
             return idpSuggestions;
         }
@@ -144,7 +156,7 @@ namespace SAML.Tools.Cli
 
             spSuggestions.SupportsSingleLogout = sp.SingleLogoutService.Any();
             spSuggestions.PossiblySupportedNameIdFormats = sp.NameIdFormat;
-            spSuggestions.SigningDetails = GetKeyDescriptorAsWell(sp,GetSigningInfo(sp.Signature));
+            spSuggestions.SigningDetails = GetKeyDescriptorAsWell(sp, GetSigningInfo(sp.Signature));
             return spSuggestions;
         }
 
